@@ -1,0 +1,87 @@
+{{- /*
+Copyright (C) 2026 YIQISOFT
+SPDX-License-Identifier: Apache-2.0
+
+Post-install/upgrade hook: grant realm-management/realm-admin onto the
+auto-created service-account user of nereidsphere-admin, create the single
+suite-wide human admin user (admin) with its realm roles, and self-validate
+the client-credentials session. The Job is recreated on every
+install/upgrade by the before-hook-creation delete policy.
+
+Why a hook is required at all: a realm import cannot bind roles to the
+service-account user Keycloak creates for a serviceAccountsEnabled client, and
+an existing realm is never re-imported, so this REST reconciliation is the
+single owner of that mapping. On upgrade it also repairs an older broken
+client (fullScopeAllowed false / no roles scope). The script waits through
+engine startup and realm import with bounded retries; a non-zero exit fails
+the Helm release with the Job logs available.
+*/ -}}
+{{- $kc := .Subcharts.keycloak -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: nereididentity-bootstrap
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+  labels:
+    {{- include "nereididentity.labels" . | nindent 4 }}
+spec:
+  backoffLimit: {{ .Values.bootstrap.backoffLimit }}
+  activeDeadlineSeconds: {{ .Values.bootstrap.deadlineSeconds }}
+  ttlSecondsAfterFinished: 300
+  template:
+    metadata:
+      labels:
+        {{- include "nereididentity.labels" . | nindent 8 }}
+    spec:
+      restartPolicy: OnFailure
+      {{- with .Values.bootstrap.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: bootstrap
+          image: {{ printf "%s:%s" .Values.bootstrap.image.repository .Values.bootstrap.image.tag | quote }}
+          imagePullPolicy: {{ .Values.bootstrap.image.pullPolicy }}
+          env:
+            - name: KC_BASE_URL
+              value: "http://{{ include "keycloak.fullname" $kc }}-http:80/auth"
+            - name: KC_REALM
+              value: {{ .Values.identity.realm | quote }}
+            - name: KC_LOGIN_THEME
+              value: {{ .Values.identity.login.theme | quote }}
+            - name: KC_DEFAULT_LOCALE
+              value: {{ .Values.identity.login.defaultLocale | quote }}
+            - name: KC_SUPPORTED_LOCALES
+              value: {{ join "," .Values.identity.login.supportedLocales | quote }}
+            - name: KC_ADMIN_CLIENT_ID
+              value: {{ .Values.identity.adminClient.clientId | quote }}
+            - name: KEYCLOAK_ADMIN
+              valueFrom:
+                secretKeyRef:
+                  name: nereididentity-admin
+                  key: KEYCLOAK_ADMIN
+            - name: KEYCLOAK_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: nereididentity-admin
+                  key: KEYCLOAK_ADMIN_PASSWORD
+            - name: KC_ADMIN_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: nereididentity-realm
+                  key: admin-client-secret
+            - name: KC_SUITE_ADMIN_USERNAME
+              value: {{ .Values.identity.suiteAdmin.username | quote }}
+            - name: KC_SUITE_ADMIN_EMAIL
+              value: {{ .Values.identity.suiteAdmin.email | quote }}
+            - name: KC_SUITE_ADMIN_FIRST_NAME
+              value: {{ .Values.identity.suiteAdmin.firstName | quote }}
+            - name: KC_SUITE_ADMIN_LAST_NAME
+              value: {{ .Values.identity.suiteAdmin.lastName | quote }}
+            - name: KC_SUITE_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: nereididentity-realm
+                  key: suite-admin-password

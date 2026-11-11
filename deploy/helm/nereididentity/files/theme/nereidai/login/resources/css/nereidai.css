@@ -1,0 +1,37 @@
+/*
+ * Copyright (C) 2026 YIQISOFT
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * NereidAI branding layered over the inherited Keycloak stylesheet. Locale
+ * switching remains the stock, keyboard-accessible Keycloak menu.
+ */
+.login-pf body {
+    background: linear-gradient(135deg, #eef4f8 0%, #f8fafc 55%, #e8f1f2 100%);
+}
+
+#kc-header-wrapper {
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.nereidai-brand {
+    color: #123b4f;
+    font-size: 1.15em;
+    font-weight: 650;
+    text-align: center;
+}
+
+.login-pf-page .card-pf {
+    border-top-color: #147d92;
+    border-radius: 4px;
+}
+
+#kc-locale-dropdown:focus-within ul {
+    display: block;
+}
+
+@media (max-width: 767px) {
+    .nereidai-brand {
+        text-align: left;
+    }
+}

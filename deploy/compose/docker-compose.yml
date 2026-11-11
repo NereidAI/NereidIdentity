@@ -1,0 +1,101 @@
+# Copyright (C) 2026 YIQISOFT
+# SPDX-License-Identifier: Apache-2.0
+
+# Development-only identity plane for NereidAI.
+#
+# Brings up Keycloak plus its dedicated PostgreSQL on the developer host and
+# auto-imports the development realm (../../realm/nereidai-realm.json). This
+# stack is consumed by every product's local development setup; products
+# themselves never run the identity engine.
+#
+#   docker compose up -d
+#
+# Bind the service-account admin role after first import (idempotent; rerun
+# whenever realm clients change):
+#
+#   docker compose --profile bootstrap run --rm bootstrap
+#
+# Keycloak admin console: http://localhost:8090 (admin/admin by default).
+# OIDC issuer:            http://localhost:8090/realms/nereidai
+
+services:
+  keycloak-db:
+    image: ${PG_IMAGE:-postgres:16-alpine}
+    container_name: ni-keycloak-db
+    environment:
+      POSTGRES_DB: ${KC_DB_NAME:-keycloak}
+      POSTGRES_USER: ${KC_DB_USER:-keycloak}
+      POSTGRES_PASSWORD: ${KC_DB_PASSWORD:-keycloak}
+    volumes:
+      - keycloak_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${KC_DB_USER:-keycloak}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ni-net
+
+  keycloak:
+    image: ${KEYCLOAK_IMAGE:-quay.io/keycloak/keycloak:26.1}
+    container_name: ni-keycloak
+    command: ['start-dev', '--import-realm']
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/${KC_DB_NAME:-keycloak}
+      KC_DB_USERNAME: ${KC_DB_USER:-keycloak}
+      KC_DB_PASSWORD: ${KC_DB_PASSWORD:-keycloak}
+      KEYCLOAK_ADMIN: ${KC_ADMIN_USER:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KC_ADMIN_PASSWORD:-admin}
+      KC_HOSTNAME: localhost
+      KC_HTTP_ENABLED: 'true'
+      KC_HEALTH_ENABLED: 'true'
+      KC_METRICS_ENABLED: 'true'
+    volumes:
+      - ../../realm:/opt/keycloak/data/import:ro
+      - ../helm/nereididentity/files/theme:/opt/keycloak/themes:ro
+    ports:
+      - '${KC_HOST_PORT:-8090}:8080'
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'exec 3<>/dev/tcp/localhost/9000 && printf "GET /health/ready HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n" >&3 && grep -q "200 OK" <&3']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - ni-net
+
+  # One-shot reconciliation of nereidsphere-admin's scope flags and the
+  # realm-management/realm-admin grant onto its auto-created service account.
+  # Uses the same script as the Helm post-install hook (single source of
+  # truth); dev Keycloak serves no /auth relative path.
+  bootstrap:
+    image: ${BOOTSTRAP_IMAGE:-ghcr.io/nereidai/nereididentity-bootstrap:0.0.0-dev}
+    container_name: ni-bootstrap
+    profiles: ['bootstrap']
+    environment:
+      KC_BASE_URL: http://keycloak:8080
+      KC_REALM: ${KC_REALM:-nereidai}
+      KC_ADMIN_CLIENT_ID: nereidsphere-admin
+      KC_ADMIN_CLIENT_SECRET: ${KC_ADMIN_CLIENT_SECRET:-changeme-admin}
+      KEYCLOAK_ADMIN: ${KC_ADMIN_USER:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KC_ADMIN_PASSWORD:-admin}
+    volumes:
+      # Bind-mount over the script baked into the image for local iteration.
+      # Relative to this compose file (deploy/compose/), so one level up,
+      # matching the theme mount in the keycloak service above.
+      - ../helm/nereididentity/files/realm-bootstrap.py:/scripts/realm-bootstrap.py:ro
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    networks:
+      - ni-net
+
+volumes:
+  keycloak_db_data:
+
+networks:
+  ni-net:
+    driver: bridge

@@ -1,0 +1,9 @@
+dependencies:
+- name: keycloakx
+  repository: https://codecentric.github.io/helm-charts
+  version: 7.0.1
+- name: cloudnative-pg
+  repository: https://cloudnative-pg.github.io/charts
+  version: 0.29.0
+digest: sha256:9106e4d54ecbe4522c47a09cc9541046242b69db0b171779d5337b3a84adfd08
+generated: "2026-10-28T21:48:57.905826618+08:00"

@@ -1,0 +1,41 @@
+{{- /*
+Copyright (C) 2026 YIQISOFT
+SPDX-License-Identifier: Apache-2.0
+
+Dedicated PostgreSQL Cluster for Keycloak, owned by this umbrella chart.
+The upstream cloudnative-pg operator chart (dependency alias "cnpg") provides
+the operator; this renders the keycloak-db Cluster so no suite-built wrapper
+chart is needed. Disabled together with the operator via postgresql.enabled.
+*/ -}}
+{{- if .Values.postgresql.enabled }}
+{{- $cluster := .Values.postgresql.cluster }}
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ $cluster.name | default "keycloak-db" }}
+  labels:
+    {{- include "nereididentity.labels" . | nindent 4 }}
+spec:
+  instances: {{ $cluster.instances | default 1 }}
+  imageName: {{ $cluster.imageName | quote }}
+  storage:
+    size: {{ $cluster.storage.size | quote }}
+    {{- if $cluster.storage.storageClass }}
+    storageClass: {{ $cluster.storage.storageClass | quote }}
+    {{- end }}
+  {{- with $cluster.bootstrap }}
+  bootstrap:
+    initdb:
+      database: {{ .initdb.database | quote }}
+      owner: {{ .initdb.owner | quote }}
+      secret:
+        name: {{ .initdb.secret.name }}
+  {{- end }}
+  {{- with $cluster.postgresql.parameters }}
+  postgresql:
+    parameters:
+      {{- range $k, $v := . }}
+      {{ $k }}: {{ $v | quote }}
+      {{- end }}
+  {{- end }}
+{{- end }}
