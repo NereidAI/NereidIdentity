@@ -13,8 +13,10 @@ updates:
       interval: weekly
     open-pull-requests-limit: 5
 
+  # The Dockerfile lives in the image subdirectory, not at the repository
+  # root; Dependabot only scans the given directory for Dockerfiles/compose.
   - package-ecosystem: docker
-    directory: /
+    directory: /deploy/images/nereididentity-bootstrap
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
