@@ -5,7 +5,7 @@
 # realm-bootstrap.py is Python-stdlib-only and makes outbound HTTPS calls, so
 # the official slim Python image is the only base and no package is installed.
 # The build context is the repository root (see the Makefile image target).
-FROM docker.io/library/python:3.14-alpine
+FROM docker.io/library/python:3.15-alpine
 
 # Default is the rolling dev channel; the release workflow injects bare
 # SemVer (0.0.1) derived from the v-prefixed git tag. GIT_SHA/BUILD_DATE are
