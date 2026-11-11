@@ -1,0 +1,21 @@
+# Copyright (C) 2026 YIQISOFT
+# SPDX-License-Identifier: Apache-2.0
+#
+# Local build acceleration (root treaty §17, §19.3).
+#
+# Copy this file to local.mk and fill in the endpoints for a restricted or
+# regional network:
+#
+#     cp local.mk.example local.mk
+#
+# local.mk is git-ignored and must never be committed. With direct internet
+# access, leave it absent for the pristine upstream build used by CI. The
+# bootstrap image is Python-stdlib-only and installs no packages, so normally
+# no override is needed at all; these variables only cover environments that
+# require an explicit outbound proxy. The Makefile contains no push action
+# regardless of this file's contents.
+
+# Outbound HTTP/HTTPS proxies (empty = direct connection).
+# HTTP_PROXY ?=
+# HTTPS_PROXY ?=
+# NO_PROXY ?=

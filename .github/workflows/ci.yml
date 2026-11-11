@@ -1,0 +1,77 @@
+# Copyright (C) 2026 YIQISOFT
+# SPDX-License-Identifier: Apache-2.0
+
+# Treaty section 15.9: the only CI pipeline. Pushes to main and PRs targeting
+# main run the same Makefile gate used locally. The job needs no secrets and
+# only reads repository contents.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7.0.1
+
+      - name: Install Helm
+        uses: azure/setup-helm@v5.0.1
+        with:
+          version: v3.18.3
+
+      # Fetch pristine upstream keycloakx/cloudnative-pg charts, then run the
+      # full gate: realm JSON, chart version sync, helm lint, helm template.
+      - name: Fetch chart dependencies
+        run: make helm-dep
+
+      - name: Verify
+        run: make verify
+
+  # image builds both release architectures into the shared GitHub Actions
+  # buildx cache. Nothing is loaded or pushed (treaty §19.1); the tag-triggered
+  # release workflow reuses these layers. build-push-action is required because
+  # the gha cache backend relies on the Actions runtime integration.
+  image:
+    name: Warm multi-arch image build cache
+    needs: verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7.0.1
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4.4.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4.4.1
+
+      - name: Build into the shared GHA cache (no push, no load)
+        uses: docker/build-push-action@v6.19.2
+        with:
+          context: .
+          file: deploy/images/nereididentity-bootstrap/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: false
+          # Same dev-channel build argument as publish-dev.yml, so the cache
+          # keys line up; tag runs inject bare SemVer via the release workflow.
+          build-args: |
+            VERSION=0.0.0-dev
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+          sbom: false

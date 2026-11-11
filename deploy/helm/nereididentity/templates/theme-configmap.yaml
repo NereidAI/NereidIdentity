@@ -1,0 +1,23 @@
+{{- /*
+Copyright (C) 2026 YIQISOFT
+SPDX-License-Identifier: Apache-2.0
+
+NereidAI login theme consumed by the Keycloak extraVolume in values.yaml.
+ConfigMap items retain the required Keycloak theme directory layout; the same
+source directory is bind-mounted by the development compose stack.
+*/ -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nereididentity-theme
+  labels:
+    {{- include "nereididentity.labels" . | nindent 4 }}
+data:
+  theme.properties: |
+{{ .Files.Get "files/theme/nereidai/login/theme.properties" | indent 4 }}
+  messages_en.properties: |
+{{ .Files.Get "files/theme/nereidai/login/messages/messages_en.properties" | indent 4 }}
+  messages_zh_CN.properties: |
+{{ .Files.Get "files/theme/nereidai/login/messages/messages_zh_CN.properties" | indent 4 }}
+  nereidai.css: |
+{{ .Files.Get "files/theme/nereidai/login/resources/css/nereidai.css" | indent 4 }}

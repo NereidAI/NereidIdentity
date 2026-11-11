@@ -1,0 +1,83 @@
+Third-Party Notices for NereidIdentity
+Copyright (C) 2026 YIQISOFT
+
+NereidIdentity itself is licensed under the Apache License, Version 2.0 (see
+LICENSE). This file lists the third-party software that NereidIdentity
+deploys, links against, or requires for operation, together with the licenses
+that govern them.
+
+This repository contains no third-party source code or binaries: the
+upstream artifacts below are fetched at build/deploy time from their public
+registries and Helm chart repositories, unmodified. No third-party chart or
+image is vendored into Git.
+
+--------------------------------------------------------------------------
+1. Identity engine and database (independent upstream processes/images)
+--------------------------------------------------------------------------
+
+Keycloak 26.1
+    Image:      quay.io/keycloak/keycloak:26.1
+    License:    Apache License 2.0
+    Role:       OIDC/OAuth2 identity engine; an interchangeable implementation
+                detail, not an architecture dependency.
+    Upstream:   https://github.com/keycloak/keycloak
+
+CloudNativePG operator 1.30.x
+    Image:      ghcr.io/cloudnative-pg/cloudnative-pg
+    License:    Apache License 2.0
+    Role:       Kubernetes operator managing the dedicated PostgreSQL cluster.
+    Upstream:   https://github.com/cloudnative-pg/cloudnative-pg
+
+CloudNativePG PostgreSQL operand 16.4
+    Image:      ghcr.io/cloudnative-pg/postgresql:16.4
+    Licenses:   PostgreSQL License (the PostgreSQL database engine, a
+                permissive MIT/BSD-style license); Debian base image under its
+                own permissive licenses.
+    Upstream:   https://www.postgresql.org/about/licence/
+
+busybox 1.36.1
+    Image:      docker.io/library/busybox:1.36.1
+    License:    GPL-2.0-or-later (runtime image only; used solely by the
+                dbchecker init container, no code is linked or modified)
+    Upstream:   https://www.busybox.net/
+
+--------------------------------------------------------------------------
+2. Suite-owned bootstrap image base (ghcr.io/nereidai/nereididentity-bootstrap)
+--------------------------------------------------------------------------
+
+CPython 3.14
+    Base image: docker.io/library/python:3.14-alpine
+    License:    Python Software Foundation License (PSF-2.0)
+    Role:       Interpreter for the stdlib-only realm bootstrap hook; no
+                third-party Python package is installed.
+    Upstream:   https://github.com/python/cpython
+
+Alpine Linux base packages
+    License:    MIT/BSD-style and other permissive licenses, except busybox
+                (GPL-2.0-or-later) and musl libc (MIT).
+    Upstream:   https://www.alpinelinux.org/
+
+The bilingual "nereidai" login theme inherits the stock Keycloak theme
+(Apache-2.0) and overrides only branding, stylesheet and locale labels; it
+adds no third-party assets.
+
+--------------------------------------------------------------------------
+3. Helm charts (fetched by "helm dependency update", never vendored)
+--------------------------------------------------------------------------
+
+codecentric keycloakx chart 7.0.1 (aliased as "keycloak")
+    Repository: https://codecentric.github.io/helm-charts
+    License:    Apache License 2.0
+    Upstream:   https://github.com/codecentric/helm-charts
+
+cloudnative-pg chart 0.29.0 (aliased as "postgresql")
+    Repository: https://cloudnative-pg.github.io/charts
+    License:    Apache License 2.0
+    Upstream:   https://github.com/cloudnative-pg/charts
+
+--------------------------------------------------------------------------
+
+If you need the verbatim license texts, retrieve them from the upstream
+repositories and image labels above, or contact the maintainers. The
+repository's own source files carry SPDX-License-Identifier headers naming
+the Apache-2.0 license.

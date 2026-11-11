@@ -1,0 +1,281 @@
+# Copyright (C) 2026 YIQISOFT
+# SPDX-License-Identifier: Apache-2.0
+
+# Default values for the NereidIdentity umbrella chart.
+#
+# Every password/secret below ships empty on purpose: template rendering
+# fails with a `required` message until a deployment-specific values file
+# supplies them. See values-k3s-example.yaml for the central deployment.
+
+# ---------------------------------------------------------------------------
+# Identity-plane declaration (rendered into the realm import Secret)
+# ---------------------------------------------------------------------------
+identity:
+  realm: nereidai
+
+  # Keycloak master administrator, bootstrapped by the engine on first start.
+  admin:
+    username: admin
+    password: ""
+
+  # Development only: import seed users admin/admin and user/user.
+  # Never enable in the central deployment.
+  seedUsers: false
+
+  # Single suite-wide human administrator for SSO: one Keycloak user shared by
+  # every product login, carrying the realm "admin" role. The post-upgrade
+  # bootstrap hook creates it idempotently and binds the role; an existing
+  # user is never updated, so its password is set once at creation.
+  # Empty password: generated once (32 chars), stored in the
+  # nereididentity-realm Secret under suite-admin-password, and stable across
+  # upgrades. Explicit value: used only at first creation.
+  suiteAdmin:
+    username: admin
+    email: admin@nereidai.local
+    firstName: Admin
+    lastName: User
+    password: ""
+
+  # NereidAI login theme and the exact locales exposed by its native language
+  # selector. The bootstrap hook reconciles these settings on existing realms;
+  # imports alone affect only fresh installations.
+  login:
+    theme: nereidai
+    defaultLocale: en
+    supportedLocales:
+      - en
+      - zh-CN
+
+  # Service-account client used by the NereidSphere admin console to manage
+  # accounts via the Keycloak Admin REST API (built-in NI mode only).
+  adminClient:
+    clientId: nereidsphere-admin
+    secret: ""
+
+  # Direct-to-NI OIDC clients, one per product (SSO mode 2). They are unused
+  # in the default suite deployment, where products trust NS tickets; kept
+  # pre-registered so any product can switch mode by configuration. Secrets
+  # MUST be provided for every client rendered into the import.
+  # The *.example.org hosts below are RFC 2606 reserved placeholders, not
+  # real endpoints: every site overrides them (and the Ingress host) in its
+  # own values file with its actual domain.
+  clients:
+    nereidsphere:
+      name: NereidSphere
+      description: "NereidSphere suite portal; authorization-code flow with PKCE"
+      directAccessGrants: false
+      redirectUris:
+        - https://nereidsphere.example.org/auth/callback
+      webOrigins:
+        - https://nereidsphere.example.org
+      secret: ""
+    nereidlink:
+      name: NereidLink
+      description: "NereidLink IoT platform; authorization-code flow with PKCE"
+      directAccessGrants: false
+      redirectUris:
+        - https://nereidlink.example.org/v1/auth/oidc/callback
+        - https://nereidlink.example.org/auth/callback
+      webOrigins:
+        - https://nereidlink.example.org
+      secret: ""
+    nereidhorizon:
+      name: NereidHorizon
+      description: "NereidHorizon edge distribution; authorization-code flow with PKCE"
+      directAccessGrants: false
+      redirectUris:
+        - https://nereidhorizon.example.org/auth/callback
+      webOrigins:
+        - https://nereidhorizon.example.org
+      secret: ""
+    nereidforge:
+      name: NereidForge
+      description: "NereidForge model factory; authorization-code flow with PKCE"
+      directAccessGrants: false
+      redirectUris:
+        - https://nereidforge.example.org/auth/callback
+      webOrigins:
+        - https://nereidforge.example.org
+      secret: ""
+
+# ---------------------------------------------------------------------------
+# Dedicated PostgreSQL (CloudNativePG)
+#
+# The upstream cloudnative-pg operator chart is a dependency aliased to
+# "postgresql"; the CNPG Cluster and its basic-auth Secret are rendered by
+# this umbrella's own templates/ (cnpg-cluster.yaml,
+# pg-credentials-secret.yaml). The cluster is named "keycloak-db" so its
+# ServiceAccount cannot clash with the Keycloak subchart's "keycloak"
+# ServiceAccount. Services: keycloak-db-rw / keycloak-db-r / -ro on 5432.
+# ---------------------------------------------------------------------------
+postgresql:
+  enabled: true
+
+  # -- Upstream cloudnative-pg operator chart settings (dependency values).
+  # CRDs are not managed by this chart: install them once cluster-wide from
+  # the upstream chart and install with --skip-crds.
+  nameOverride: cloudnative-pg
+  fullnameOverride: cloudnative-pg
+  crds:
+    create: false
+  image:
+    repository: ghcr.io/cloudnative-pg/cloudnative-pg
+    tag: "1.30.0"
+    pullPolicy: IfNotPresent
+
+  # -- CNPG Cluster operand settings consumed by templates/cnpg-cluster.yaml.
+  cluster:
+    name: keycloak-db
+    instances: 1
+    imageName: ghcr.io/cloudnative-pg/postgresql:16.4
+    storage:
+      size: 8Gi
+      storageClass: nfs-csi
+    bootstrap:
+      initdb:
+        database: keycloak
+        owner: keycloak
+        secret:
+          name: pg-keycloak-credentials
+    postgresql:
+      parameters:
+        max_connections: "100"
+
+  # Basic-auth Secret pg-keycloak-credentials is generated from this password.
+  bootstrap:
+    password: ""
+
+# ---------------------------------------------------------------------------
+# Keycloak (codecentric subchart 7.0.1, engine image 26.1)
+# ---------------------------------------------------------------------------
+keycloak:
+  # Keeps the StatefulSet/Service names nereididentity-keycloak(-http) with
+  # the pristine keycloakx chart (its chart name is "keycloakx").
+  nameOverride: keycloak
+  replicas: 1
+
+  image:
+    repository: quay.io/keycloak/keycloak
+    tag: "26.1"
+    pullPolicy: IfNotPresent
+  # Operator-supplied pull secrets for authenticated registry mirrors; leave
+  # empty for public online installs (node-level containerd mirrors need no
+  # imagePullSecret).
+  imagePullSecrets: []
+
+  # --import-realm loads /opt/keycloak/data/import at every start; an existing
+  # realm is left untouched, so the import is safe across restarts.
+  args:
+    - start
+    - --import-realm
+
+  # Single replica: disable the kubernetes JGroups DNS_PING discovery that the
+  # chart defaults to. Traefik sends X-Forwarded-* (not RFC 7239 Forwarded).
+  cache:
+    stack: local
+  proxy:
+    enabled: true
+    mode: xforwarded
+    http:
+      enabled: true
+
+  # Block Keycloak startup until the CNPG Service accepts TCP, so a fresh
+  # install never enters CrashLoopBackOff while the database initializes.
+  dbchecker:
+    enabled: true
+    image:
+      repository: docker.io/busybox
+      tag: "1.36.1"
+      pullPolicy: IfNotPresent
+
+  metrics:
+    enabled: true
+
+  # Roll the Pod on every chart revision so production theme/template caches
+  # cannot outlive a realm or login-theme update.
+  podAnnotations:
+    nereidai.com/config-revision: '{{ .Release.Revision | quote }}'
+
+  extraEnv: |
+    - name: KC_CACHE
+      value: local
+    - name: KC_HOSTNAME_STRICT
+      value: "false"
+
+  extraEnvFrom: |
+    - secretRef:
+        name: nereididentity-admin
+
+  extraVolumes: |
+    - name: realm-import
+      secret:
+        secretName: nereididentity-realm
+    - name: nereidai-theme
+      configMap:
+        name: nereididentity-theme
+        items:
+          - key: theme.properties
+            path: login/theme.properties
+          - key: messages_en.properties
+            path: login/messages/messages_en.properties
+          - key: messages_zh_CN.properties
+            path: login/messages/messages_zh_CN.properties
+          - key: nereidai.css
+            path: login/resources/css/nereidai.css
+  extraVolumeMounts: |
+    - name: realm-import
+      mountPath: /opt/keycloak/data/import
+      readOnly: true
+    - name: nereidai-theme
+      mountPath: /opt/keycloak/themes/nereidai
+      readOnly: true
+
+  database:
+    vendor: postgres
+    hostname: keycloak-db-rw
+    port: 5432
+    database: keycloak
+    username: keycloak
+    existingSecret: pg-keycloak-credentials
+    existingSecretKey: password
+
+  http:
+    relativePath: /auth
+
+  ingress:
+    enabled: true
+    ingressClassName: traefik
+    annotations:
+      cert-manager.io/cluster-issuer: internal-ca
+    # RFC 2606 reserved placeholder; override with the real SSO host in site
+    # values (see values-k3s-example.yaml).
+    rules:
+      - host: sso.example.org
+        paths:
+          - path: /auth/
+            pathType: Prefix
+    tls:
+      - hosts:
+          - sso.example.org
+        secretName: keycloak-tls
+
+# ---------------------------------------------------------------------------
+# Post-install/upgrade bootstrap hook (files/realm-bootstrap.py)
+#
+# Realm import cannot grant roles onto Keycloak's auto-created service-account
+# user, so the hook reconciles nereidsphere-admin's scope flags and grants
+# realm-management/realm-admin, then self-validates with client-credentials.
+# The hook runs the suite-owned bootstrap image (Python stdlib only). Its tag
+# is the rolling-dev placeholder 0.0.0-dev on the branch; the release commit
+# moves it to the tag-derived bare SemVer (never "latest"), and
+# make helm-version-check enforces the sync on exact-tag checkouts.
+# ---------------------------------------------------------------------------
+bootstrap:
+  image:
+    repository: ghcr.io/nereidai/nereididentity-bootstrap
+    tag: "0.0.0-dev"
+    pullPolicy: IfNotPresent
+  # Operator-supplied pull secrets for authenticated registry mirrors.
+  imagePullSecrets: []
+  deadlineSeconds: 600
+  backoffLimit: 2

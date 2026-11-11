@@ -1,0 +1,233 @@
+{
+  "realm": "nereidai",
+  "enabled": true,
+  "displayName": "NereidAI",
+  "loginTheme": "nereidai",
+  "internationalizationEnabled": true,
+  "supportedLocales": ["en", "zh-CN"],
+  "defaultLocale": "en",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "defaultRoles": ["offline_access", "uma_authorization", "user"],
+  "roles": {
+    "realm": [
+      {
+        "name": "user",
+        "description": "Basic user",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "nereidai"
+      },
+      {
+        "name": "admin",
+        "description": "Administrator",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "nereidai"
+      },
+      {
+        "name": "operator",
+        "description": "Operator",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "nereidai"
+      }
+    ]
+  },
+  "defaultGroups": ["user"],
+  "clients": [
+    {
+      "clientId": "nereidsphere",
+      "name": "NereidSphere",
+      "description": "NereidSphere suite portal; authorization-code flow with PKCE",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "changeme",
+      "redirectUris": [
+        "http://localhost:8081/auth/callback",
+        "http://localhost:5173/auth/callback"
+      ],
+      "webOrigins": [
+        "http://localhost:8081",
+        "http://localhost:5173"
+      ],
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "publicClient": false,
+      "frontchannelLogout": true,
+      "protocol": "openid-connect",
+      "attributes": {
+        "post.logout.redirect.uris": "http://localhost:8081",
+        "pkce.code.challenge.method": "S256"
+      },
+      "fullScopeAllowed": true,
+      "defaultClientScopes": ["web-origins", "roles", "profile", "email"],
+      "optionalClientScopes": ["address", "phone", "offline_access", "microprofile-jwt"]
+    },
+    {
+      "clientId": "nereidlink",
+      "name": "NereidLink",
+      "description": "NereidLink IoT platform; authorization-code flow with PKCE",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "changeme-link",
+      "redirectUris": [
+        "http://localhost:8080/v1/auth/oidc/callback",
+        "http://localhost:5173/auth/callback",
+        "http://localhost:5173/oidc/callback"
+      ],
+      "webOrigins": [
+        "http://localhost:8080",
+        "http://localhost:5173"
+      ],
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "publicClient": false,
+      "frontchannelLogout": true,
+      "protocol": "openid-connect",
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "fullScopeAllowed": true,
+      "defaultClientScopes": ["web-origins", "roles", "profile", "email"],
+      "optionalClientScopes": ["address", "phone", "offline_access", "microprofile-jwt"]
+    },
+    {
+      "clientId": "nereidhorizon",
+      "name": "NereidHorizon",
+      "description": "NereidHorizon edge distribution; authorization-code flow with PKCE",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "changeme-horizon",
+      "redirectUris": [
+        "http://localhost:3001/auth/callback",
+        "http://localhost:3001/oidc/callback",
+        "http://localhost:5174/auth/callback",
+        "http://localhost:5174/oidc/callback"
+      ],
+      "webOrigins": [
+        "http://localhost:3001",
+        "http://localhost:5174"
+      ],
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "publicClient": false,
+      "frontchannelLogout": true,
+      "protocol": "openid-connect",
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "fullScopeAllowed": true,
+      "defaultClientScopes": ["web-origins", "roles", "profile", "email"],
+      "optionalClientScopes": ["address", "phone", "offline_access", "microprofile-jwt"]
+    },
+    {
+      "clientId": "nereidforge",
+      "name": "NereidForge",
+      "description": "NereidForge model factory; authorization-code flow with PKCE",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "changeme-forge",
+      "redirectUris": [
+        "http://localhost:8082/auth/callback",
+        "http://localhost:8082/oidc/callback",
+        "http://localhost:5175/auth/callback",
+        "http://localhost:5175/oidc/callback"
+      ],
+      "webOrigins": [
+        "http://localhost:8082",
+        "http://localhost:5175"
+      ],
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "publicClient": false,
+      "frontchannelLogout": true,
+      "protocol": "openid-connect",
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "fullScopeAllowed": true,
+      "defaultClientScopes": ["web-origins", "roles", "profile", "email"],
+      "optionalClientScopes": ["address", "phone", "offline_access", "microprofile-jwt"]
+    },
+    {
+      "clientId": "nereidsphere-admin",
+      "name": "NereidSphere Admin Console",
+      "description": "Service account for NereidSphere identity administration (client-credentials, realm-admin)",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "changeme-admin",
+      "redirectUris": [],
+      "webOrigins": [],
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "publicClient": false,
+      "frontchannelLogout": false,
+      "protocol": "openid-connect",
+      "fullScopeAllowed": true,
+      "defaultClientScopes": ["roles"],
+      "optionalClientScopes": []
+    }
+  ],
+  "users": [
+    {
+      "username": "admin",
+      "enabled": true,
+      "totp": false,
+      "emailVerified": true,
+      "firstName": "Admin",
+      "lastName": "User",
+      "email": "admin@nereidai.local",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["admin", "user"]
+    },
+    {
+      "username": "user",
+      "enabled": true,
+      "totp": false,
+      "emailVerified": true,
+      "firstName": "Test",
+      "lastName": "User",
+      "email": "user@nereidai.local",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "user",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["user"]
+    }
+  ]
+}

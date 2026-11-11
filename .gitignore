@@ -1,0 +1,17 @@
+# Copyright (C) 2026 YIQISOFT
+# SPDX-License-Identifier: Apache-2.0
+
+# Helm
+deploy/helm/nereididentity/charts/
+deploy/helm/nereididentity/*.tgz
+dist/
+
+# Compose
+deploy/compose/.env
+
+# OS/editor
+.DS_Store
+*.swp
+
+# Local build acceleration fragment (treaty §19.3); use local.mk.example
+/local.mk

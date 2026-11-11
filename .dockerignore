@@ -1,0 +1,12 @@
+# Copyright (C) 2026 YIQISOFT
+# SPDX-License-Identifier: Apache-2.0
+
+# The bootstrap image copies only realm-bootstrap.py; keep the build context
+# free of local state and unrelated artifacts.
+.git
+.github
+dist
+english-grammar-review.md
+deploy/helm/nereididentity/charts/
+**/__pycache__/
+**/*.pyc

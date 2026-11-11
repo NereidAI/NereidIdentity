@@ -1,0 +1,44 @@
+# Copyright (C) 2026 YIQISOFT
+# SPDX-License-Identifier: Apache-2.0
+
+# Example deployment values for the central NereidAI k3s cluster.
+# Copy, replace every secret, and install with:
+#
+#   helm dependency update
+#   helm install nereididentity . -n nereididentity --create-namespace \
+#     --skip-crds -f values-k3s.yaml
+#
+# --skip-crds is required when the CNPG CRDs already exist on the cluster
+# (owned by another deployment). Prerequisites: cert-manager + internal-ca
+# ClusterIssuer and the nfs-csi StorageClass. Images pull from public
+# registries by default; for an authenticated node mirror, pre-create the
+# pull Secret(s) and list them via keycloak.imagePullSecrets and
+# bootstrap.imagePullSecrets.
+
+postgresql:
+  bootstrap:
+    password: "REPLACE-STRONG-PG-PASSWORD"
+
+identity:
+  admin:
+    username: admin
+    password: "REPLACE-STRONG-ADMIN-PASSWORD"
+  seedUsers: false
+  # Shared SSO administrator. Leave password empty to generate one once on
+  # first install (stored in Secret nereididentity-realm, key
+  # suite-admin-password; upgrades never rotate it).
+  suiteAdmin:
+    username: admin
+    email: admin@nereidai.local
+    password: ""
+  adminClient:
+    secret: "REPLACE-SPHERE-ADMIN-SERVICE-SECRET"
+  clients:
+    nereidsphere:
+      secret: "REPLACE-SPHERE-CLIENT-SECRET"
+    nereidlink:
+      secret: "REPLACE-LINK-CLIENT-SECRET"
+    nereidhorizon:
+      secret: "REPLACE-HORIZON-CLIENT-SECRET"
+    nereidforge:
+      secret: "REPLACE-FORGE-CLIENT-SECRET"

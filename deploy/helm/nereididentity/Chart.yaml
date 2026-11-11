@@ -1,0 +1,33 @@
+# Copyright (C) 2026 YIQISOFT
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: v2
+name: nereididentity
+description: |
+  NereidAI suite identity plane. Umbrella chart that deploys the shared,
+  replaceable OIDC/OAuth2 provider (Keycloak) with its dedicated PostgreSQL
+  and declaratively imports the suite realm with one confidential client per
+  product (nereidsphere, nereidlink, nereidhorizon, nereidforge).
+type: application
+# Chart package version is unchanged by the tag-sourced version model; it is
+# bumped at release packaging time. appVersion is the rolling-dev placeholder
+# on the branch; the release commit replaces it with the tag-derived bare
+# SemVer, and make helm-version-check enforces the sync on exact-tag checkouts.
+version: 0.0.1
+appVersion: "0.0.0-dev"
+maintainers:
+  - name: YIQISOFT
+dependencies:
+  # Pristine upstream charts only (treaty section 15.4); keycloakx is aliased
+  # to "keycloak" so parent values and templates keep that name.
+  - name: keycloakx
+    alias: keycloak
+    version: 7.0.1
+    repository: https://codecentric.github.io/helm-charts
+  # Aliased to "postgresql" so parent values keep the postgresql.* tree;
+  # the Cluster itself is rendered by this umbrella (templates/cnpg-cluster.yaml).
+  - name: cloudnative-pg
+    alias: postgresql
+    version: 0.29.0
+    repository: https://cloudnative-pg.github.io/charts
+    condition: postgresql.enabled

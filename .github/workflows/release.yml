@@ -1,0 +1,47 @@
+# Copyright (C) 2026 YIQISOFT
+# SPDX-License-Identifier: Apache-2.0
+
+# Treaty §15.9 / root treaty §19 release pipeline. A pushed v* SemVer tag is
+# the only trigger and the single version source: the repository carries no
+# VERSION file and the organization reusable workflow derives bare VERSION
+# itself (v0.0.1 -> 0.0.1), so this caller passes no VERSION build-arg. It
+# builds the amd64+arm64 bootstrap image and publishes the three-tag scheme
+# (no latest); Keycloak itself stays the unmodified upstream quay.io image, so
+# this is the only image the repository publishes.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # The reusable workflow injects only VERSION; GIT_SHA/BUILD_DATE are derived
+  # by this caller (with: never executes shell) and forwarded as build-args so
+  # the image OCI revision/created labels stay non-empty on every publication.
+  prep:
+    name: Derive image build metadata
+    runs-on: ubuntu-latest
+    outputs:
+      build_date: ${{ steps.meta.outputs.build_date }}
+    steps:
+      - id: meta
+        run: echo "build_date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
+  release-image:
+    name: Build and publish bootstrap image
+    needs: prep
+    uses: NereidAI/.github/.github/workflows/release-image.yml@v1
+    with:
+      image-name: nereididentity-bootstrap
+      file: deploy/images/nereididentity-bootstrap/Dockerfile
+      build-args: |
+        GIT_SHA=${{ github.sha }}
+        BUILD_DATE=${{ needs.prep.outputs.build_date }}

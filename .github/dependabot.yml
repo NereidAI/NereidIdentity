@@ -1,0 +1,20 @@
+# Copyright (C) 2026 YIQISOFT
+# SPDX-License-Identifier: Apache-2.0
+
+# Dependabot keeps the two supply-chain surfaces this repository actually
+# has current: GitHub Actions references and the single Dockerfile base
+# image. There is no third-party Python dependency (the bootstrap hook is
+# standard-library-only), so no pip ecosystem is configured.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
