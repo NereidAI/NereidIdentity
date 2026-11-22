@@ -93,32 +93,42 @@ commands can pass the same file with `--env-file`.
 
 ## Central deployment (k3s)
 
-Create an operator-supplied values file from the committed example and install
-from the product's source checkout:
+Install the versioned public OCI chart. The immutable Lab/POC version below
+passed anonymous chart pull/render and image-manifest verification on
+2026-11-22. Use a verified formal version instead when one is published; the
+floating `0.0.0-dev` tag is not a reproducible installation input.
 
 ```bash
-install -d -m 700 ../.deployment/deploy-values/nereididentity
-cp -n deploy/helm/nereididentity/values-k3s-example.yaml \
-  ../.deployment/deploy-values/nereididentity/values.yaml
-chmod 600 ../.deployment/deploy-values/nereididentity/values.yaml
-make helm-dep
-make install VALUES=../.deployment/deploy-values/nereididentity/values.yaml
+export NEREIDIDENTITY_VERSION=0.0.0-dev-7c2797d
+export DEPLOYMENT_ROOT="${DEPLOYMENT_ROOT:-$HOME/.nereidai-deployment}"
+install -d -m 700 "$DEPLOYMENT_ROOT/deploy-values/nereididentity" \
+  "$DEPLOYMENT_ROOT/chart-archives"
+helm pull oci://ghcr.io/nereidai/charts/nereididentity \
+  --version "$NEREIDIDENTITY_VERSION" \
+  --destination "$DEPLOYMENT_ROOT/chart-archives"
+# Extract the example only on first initialization; never overwrite site values.
+test -s "$DEPLOYMENT_ROOT/deploy-values/nereididentity/values.yaml" || \
+  tar -xOzf "$DEPLOYMENT_ROOT/chart-archives/nereididentity-${NEREIDIDENTITY_VERSION}.tgz" \
+    nereididentity/values-k3s-example.yaml \
+    > "$DEPLOYMENT_ROOT/deploy-values/nereididentity/values.yaml"
+chmod 600 "$DEPLOYMENT_ROOT/deploy-values/nereididentity/values.yaml"
+# Edit the values file: replace every required secret and example host first.
+helm upgrade --install nereididentity \
+  oci://ghcr.io/nereidai/charts/nereididentity \
+  --version "$NEREIDIDENTITY_VERSION" \
+  --namespace nereididentity --create-namespace --skip-crds --timeout 10m \
+  --values "$DEPLOYMENT_ROOT/deploy-values/nereididentity/values.yaml"
 ```
 
-`make install` runs `helm upgrade --install` as release
-`nereididentity` in the `nereididentity` namespace with `--skip-crds`
-(the CloudNativePG CRDs are a cluster-wide prerequisite this chart never
-owns). The release name is fixed: the chart mounts fixed-name Secrets.
-
-`helm dependency update` fetches the pristine upstream `keycloakx` and
-`cloudnative-pg` charts from their public repositories. OCI publication runs
-`helm dependency build` from the lock file and verifies the packaged archive
-before pushing it. Prerequisites on the cluster: cert-manager with the
-`internal-ca` ClusterIssuer and the `nfs-csi` StorageClass. Nodes pull
-images directly from public registries; an authenticated mirror is a
-node-level containerd setting and, if it needs credentials, pull Secrets are
-supplied through `keycloak.imagePullSecrets` and
-`bootstrap.imagePullSecrets`.
+The release name is fixed: the chart mounts fixed-name Secrets. `--skip-crds`
+is required because the CloudNativePG CRDs are a cluster-wide prerequisite;
+the suite installation guide installs the matching upstream CRDs first.
+Prerequisites on the cluster also include cert-manager with the `internal-ca`
+ClusterIssuer and the `nfs-csi` StorageClass. The OCI package contains locked
+upstream dependencies and selects
+`ghcr.io/nereidai/nereididentity-bootstrap:${NEREIDIDENTITY_VERSION}` through
+its `appVersion`. All suite and third-party images pull anonymously from their
+public registries.
 
 Every suite product runs in its **own namespace**, named after the product
 itself (`nereididentity`, `nereidsphere`, `nereidlink`, …); this convention
