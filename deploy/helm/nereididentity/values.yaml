@@ -265,15 +265,15 @@ keycloak:
 # Realm import cannot grant roles onto Keycloak's auto-created service-account
 # user, so the hook reconciles nereidsphere-admin's scope flags and grants
 # realm-management/realm-admin, then self-validates with client-credentials.
-# The hook runs the suite-owned bootstrap image (Python stdlib only). Its tag
-# is the rolling-dev placeholder 0.0.0-dev on the branch; the release commit
-# moves it to the tag-derived bare SemVer (never "latest"), and
-# make helm-version-check enforces the sync on exact-tag checkouts.
+# The hook runs the suite-owned bootstrap image (Python stdlib only). An empty
+# tag defaults to Chart.AppVersion: 0.0.0-dev in tracked sources, the matching
+# commit-qualified tag in immutable development packages, or bare SemVer in a
+# release package.
 # ---------------------------------------------------------------------------
 bootstrap:
   image:
     repository: ghcr.io/nereidai/nereididentity-bootstrap
-    tag: "0.0.0-dev"
+    tag: ""
     pullPolicy: IfNotPresent
   # Operator-supplied pull secrets for authenticated registry mirrors.
   imagePullSecrets: []

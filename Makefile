@@ -81,9 +81,10 @@ helm-template: ## Render the chart (example values by default; VALUES= for site 
 	@echo "rendered $(RELEASE) from $(if $(VALUES),$(VALUES),$(TEMPLATE_VALUES))"
 
 .PHONY: helm-package
-helm-package: helm-version-check ## Package the chart into dist/charts/ (offline redistribution only)
+helm-package: helm-version-check ## Package the chart with the tag-derived version into dist/charts/
 	mkdir -p dist/charts
-	helm package $(CHART_DIR) -d dist/charts
+	helm package $(CHART_DIR) \
+		--version $(VERSION) --app-version $(VERSION) -d dist/charts
 
 .PHONY: image
 image: ## Build the bootstrap hook image for the local Docker daemon (three tags, no push)
@@ -97,22 +98,17 @@ image: ## Build the bootstrap hook image for the local Docker daemon (three tags
 		-t $(REGISTRY)/$(IMAGE_NAME):$(TAG)-$(GIT_SHA) .
 
 .PHONY: helm-version-check
-helm-version-check: ## On an exact-tag checkout, fail when chart version/appVersion or the bootstrap image tag drift from the tag-derived VERSION
-	@if ! git describe --tags --exact-match >/dev/null 2>&1; then \
-	  echo "skipping chart version sync: not an exact-tag checkout (dev channel $(VERSION))"; \
-	  exit 0; \
-	fi; \
-	chart_ver=$$(sed -n 's/^version: //p' $(CHART_DIR)/Chart.yaml); \
-	test -n "$$chart_ver" || { echo "no chart version found in $(CHART_DIR)/Chart.yaml"; exit 1; }; \
-	test "$$chart_ver" = "$(VERSION)" || \
-	  { echo "Chart.yaml version '$$chart_ver' != tag-derived VERSION '$(VERSION)'"; exit 1; }; \
+helm-version-check: ## Verify that tracked chart sources retain the rolling-dev placeholders
+	@chart_ver=$$(sed -n 's/^version: //p' $(CHART_DIR)/Chart.yaml | tr -d '"'); \
+	test "$$chart_ver" = "0.0.0-dev" || \
+	  { echo "Chart.yaml version '$$chart_ver' must remain 0.0.0-dev"; exit 1; }; \
 	app_ver=$$(sed -n 's/^appVersion: //p' $(CHART_DIR)/Chart.yaml | tr -d '"'); \
-	test "$$app_ver" = "$(VERSION)" || \
-	  { echo "Chart.yaml appVersion '$$app_ver' != tag-derived VERSION '$(VERSION)'"; exit 1; }; \
+	test "$$app_ver" = "0.0.0-dev" || \
+	  { echo "Chart.yaml appVersion '$$app_ver' must remain 0.0.0-dev"; exit 1; }; \
 	image_tag=$$(python3 -c 'import yaml; print(yaml.safe_load(open("$(CHART_DIR)/values.yaml"))["bootstrap"]["image"]["tag"])'); \
-	test "$$image_tag" = "$(VERSION)" || \
-	  { echo "bootstrap image tag '$$image_tag' != VERSION '$(VERSION)'"; exit 1; }; \
-	echo "chart version $$chart_ver, appVersion $$app_ver and bootstrap image tag $$image_tag match tag-derived VERSION"
+	test -z "$$image_tag" || \
+	  { echo "bootstrap image tag must remain empty and default to Chart.AppVersion"; exit 1; }; \
+	echo "tracked chart version/appVersion use 0.0.0-dev; bootstrap image uses Chart.AppVersion"
 
 .PHONY: verify
 verify: lint helm-version-check helm-lint helm-template ## Pre-commit gate: declarations, version sync, chart lint and render

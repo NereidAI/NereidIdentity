@@ -9,11 +9,10 @@ description: |
   and declaratively imports the suite realm with one confidential client per
   product (nereidsphere, nereidlink, nereidhorizon, nereidforge).
 type: application
-# Chart package version is unchanged by the tag-sourced version model; it is
-# bumped at release packaging time. appVersion is the rolling-dev placeholder
-# on the branch; the release commit replaces it with the tag-derived bare
-# SemVer, and make helm-version-check enforces the sync on exact-tag checkouts.
-version: 0.0.1
+# Tracked sources stay on the rolling-dev placeholder. Release and immutable
+# development packages inject their versions with helm package; no release
+# version is committed here.
+version: 0.0.0-dev
 appVersion: "0.0.0-dev"
 maintainers:
   - name: YIQISOFT

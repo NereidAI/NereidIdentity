@@ -93,9 +93,10 @@ commands can pass the same file with `--env-file`.
 
 ## Central deployment (k3s)
 
+Create an operator-supplied values file from the committed example and install
+from the product's source checkout:
+
 ```bash
-# Operator-supplied site values (never committed); copy the example into the
-# workspace deployment directory and fill every required secret:
 install -d -m 700 ../.deployment/deploy-values/nereididentity
 cp -n deploy/helm/nereididentity/values-k3s-example.yaml \
   ../.deployment/deploy-values/nereididentity/values.yaml
@@ -110,9 +111,9 @@ make install VALUES=../.deployment/deploy-values/nereididentity/values.yaml
 owns). The release name is fixed: the chart mounts fixed-name Secrets.
 
 `helm dependency update` fetches the pristine upstream `keycloakx` and
-`cloudnative-pg` charts from their public repositories; the product
-repository is the single source of truth and no suite chart bundle or chart
-museum is required. Prerequisites on the cluster: cert-manager with the
+`cloudnative-pg` charts from their public repositories. OCI publication runs
+`helm dependency build` from the lock file and verifies the packaged archive
+before pushing it. Prerequisites on the cluster: cert-manager with the
 `internal-ca` ClusterIssuer and the `nfs-csi` StorageClass. Nodes pull
 images directly from public registries; an authenticated mirror is a
 node-level containerd setting and, if it needs credentials, pull Secrets are
