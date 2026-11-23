@@ -107,3 +107,10 @@ realm import or admin automation.
   inline scope declarations or `groups` references to "make the JSON
   self-contained" — they would break or noisy-fail every fresh install,
   including the compose dev stack and new customer sites.
+- **Upgrade/recovery boundary:** fixing the Helm template repairs new imports,
+  but Keycloak's `IGNORE_EXISTING` strategy does not repair a realm already
+  imported with missing built-in scopes. A confirmed fresh, failed installation
+  with no users or other site-specific realm state can be re-imported after the
+  corrected Secret is installed. Never delete a non-empty realm as an upgrade
+  shortcut; such an installation requires a separately reviewed Admin API
+  migration that restores the complete built-in scopes and their bindings.

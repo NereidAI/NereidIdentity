@@ -110,8 +110,12 @@ helm-version-check: ## Verify that tracked chart sources retain the rolling-dev 
 	  { echo "bootstrap image tag must remain empty and default to Chart.AppVersion"; exit 1; }; \
 	echo "tracked chart version/appVersion use 0.0.0-dev; bootstrap image uses Chart.AppVersion"
 
+.PHONY: test-realm-contract
+test-realm-contract: ## Verify Keycloak built-in scopes survive fresh realm imports
+	python3 -m unittest discover -s tests -p 'test_*.py' -v
+
 .PHONY: verify
-verify: lint helm-version-check helm-lint helm-template ## Pre-commit gate: declarations, version sync, chart lint and render
+verify: lint helm-version-check helm-lint helm-template test-realm-contract ## Pre-commit gate: declarations, version sync, chart lint, render and realm contract
 
 .PHONY: install
 install: ## Helm install/upgrade; requires explicit VALUES=<site-values.yaml>
