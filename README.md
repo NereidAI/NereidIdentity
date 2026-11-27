@@ -93,11 +93,14 @@ commands can pass the same file with `--env-file`.
 
 ## Central deployment (k3s)
 
-Install the public OCI chart through the floating development selector. The
-`0.0.0-dev` OCI tag aliases the latest successfully published immutable
-`0.0.0-dev-<short-sha>` chart manifest; it is not a second chart build. The
-chart's resolved immutable `appVersion` selects the matching product image.
-Use a verified formal version instead when one is published.
+Install the public OCI chart through the floating development selector.
+`0.0.0-dev` is the single rolling development identity for both the chart and
+the bootstrap image: each main-branch publication moves the tag to the new
+verified manifest, and the chart selects the floating `0.0.0-dev` image.
+Earlier `0.0.0-dev-<short-sha>` chart tags remain in the registry for
+reproducing historical snapshots, but new development builds no longer create
+per-commit chart tags. Use a verified formal version instead when one is
+published.
 
 ```bash
 export NEREIDIDENTITY_VERSION=0.0.0-dev
@@ -129,12 +132,13 @@ is required because the CloudNativePG CRDs are a cluster-wide prerequisite;
 the suite installation guide installs the matching upstream CRDs first.
 Prerequisites on the cluster also include cert-manager with the `internal-ca`
 ClusterIssuer and the `nfs-csi` StorageClass. The OCI package contains locked
-upstream dependencies and selects `nereididentity-bootstrap` at its resolved
-immutable `appVersion`. Record the digest printed by `helm pull` and the chart
-version shown by `helm show chart`. For deliberate reproduction, set
-`NEREIDIDENTITY_VERSION` to that resolved `0.0.0-dev-<short-sha>` snapshot
-instead of the floating selector. All suite and third-party images pull
-anonymously from their public registries.
+upstream dependencies and selects `nereididentity-bootstrap` at the floating
+`0.0.0-dev` image tag. Record the digest printed by `helm pull` and the chart
+version shown by `helm show chart`; pinning that digest reproduces a given
+floating-tag snapshot even after the tag moves. For historical builds, set
+`NEREIDIDENTITY_VERSION` to one of the retained `0.0.0-dev-<short-sha>`
+snapshots instead of the floating selector. All suite and third-party images
+pull anonymously from their public registries.
 
 Every suite product runs in its **own namespace**, named after the product
 itself (`nereididentity`, `nereidsphere`, `nereidlink`, …); this convention
