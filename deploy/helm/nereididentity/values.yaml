@@ -266,9 +266,10 @@ keycloak:
 # user, so the hook reconciles nereidsphere-admin's scope flags and grants
 # realm-management/realm-admin, then self-validates with client-credentials.
 # The hook runs the suite-owned bootstrap image (Python stdlib only). An empty
-# tag defaults to Chart.AppVersion: 0.0.0-dev in tracked sources, the matching
-# commit-qualified tag in immutable development packages, or bare SemVer in a
-# release package.
+# tag defaults to Chart.AppVersion: 0.0.0-dev in both tracked sources and
+# development packages, or bare SemVer in a release package. The image
+# registry keeps per-commit traceability tags, but the development chart
+# selects the floating 0.0.0-dev alias rather than a commit-qualified tag.
 # ---------------------------------------------------------------------------
 bootstrap:
   image:
